@@ -9,6 +9,8 @@ See the License for the specific language governing permissions and limitations 
 var express = require("express");
 var bodyParser = require("body-parser");
 var awsServerlessExpressMiddleware = require("aws-serverless-express/middleware");
+const axios = require("axios");
+const { response } = require("express");
 
 // declare a new express app
 var app = express();
@@ -22,7 +24,8 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.get("/coins", function (req, res) {
+//async-await
+/* app.get("/coins", function (req, res) {
   const coins = [
     { name: "Bitcoin", symbol: "BTC", price_usd: "10000" },
     { name: "Etherium", symbol: "ETH", price_usd: "400" },
@@ -31,6 +34,25 @@ app.get("/coins", function (req, res) {
   res.json({
     coins,
   });
+}); */
+
+//coinlore api를 호출하여 연동하여 보여준다.
+app.get("/coins", function (req, res) {
+  let apiUrl = `https://api.coinlore.com/api/tickers?start=0&limit=10`;
+
+  if (req.apiGateway && req.apiGateway.event.queryStringParameters) {
+    // event가 있는지 확인후 queryStringParameters를 확인해 있으면 해당 값을 이용하여 URL을 수정
+    const { start = 0, limit = 10 } =
+      req.apiGateway.event.queryStringParameters;
+    apiUrl = `https://api.coinlore.com/api/tickers/?start=${start}&limit=${limit}`;
+  }
+
+  axios
+    .get(apiUrl)
+    .then((response) => {
+      res.json({ coins: response.data.data });
+    })
+    .catch((err) => res.json({ error: err }));
 });
 
 app.listen(3000, function () {
